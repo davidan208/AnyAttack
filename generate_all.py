@@ -74,6 +74,17 @@ def load_image(path: str, transform: transforms.Compose) -> torch.Tensor:
 
 def load_decoder(checkpoint_path: str, device: torch.device) -> Decoder:
     """Load decoder from checkpoint, handling DDP 'module.' prefix."""
+    # Check if file is a Git LFS pointer (not actual weight file)
+    with open(checkpoint_path, "rb") as f:
+        header = f.read(20)
+    if header.startswith(b"version ") or header.startswith(b"version\n"):
+        raise RuntimeError(
+            f"File '{checkpoint_path}' is a Git LFS pointer, not an actual model weight.\n"
+            f"Please run 'git lfs pull' in the repo, or download weights manually from:\n"
+            f"  - HuggingFace: https://huggingface.co/Jiaming94/anyattack\n"
+            f"  - OneDrive: see README.md Step 2"
+        )
+
     decoder = Decoder(embed_dim=512).to(device).eval()
     state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
